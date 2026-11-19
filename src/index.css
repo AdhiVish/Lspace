@@ -104,3 +104,6 @@ html.on .grain::after { opacity: 0.035; }
   .lamp-sway { animation: none; }
   *, *::before, *::after { transition-duration: 0.01s !important; }
 }
+
+/* dental slideshow timer */
+@keyframes dental-fill { from { transform: scaleY(0); } to { transform: scaleY(1); } }

@@ -4,7 +4,6 @@ import { scrollToTarget } from "@/lib/scroll";
 
 const SECTIONS = [
   ["home", "Home"],
-  ["about", "About"],
   ["spaces", "Spaces"],
   ["dental", "Dental"],
   ["services", "Floor plan"],

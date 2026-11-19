@@ -4,6 +4,8 @@ import { Preloader } from "@/components/layout/Preloader";
 import { Navbar } from "@/components/layout/Navbar";
 import { ScrollManager } from "@/components/routing/ScrollManager";
 import { Page } from "@/components/routing/Page";
+import { scrollToTarget } from "@/lib/scroll";
+import AboutPage from "@/pages/AboutPage";
 import Home from "@/pages/Home";
 import SpacePage from "@/pages/SpacePage";
 import RoomPage from "@/pages/RoomPage";
@@ -18,10 +20,11 @@ export default function App() {
       <ScrollManager />
       <Preloader />
       {home && <Navbar />}
-      <AnimatePresence mode="wait" initial={false}>
-        <Page key={location.pathname}>
+      <AnimatePresence mode="wait" onExitComplete={() => !window.location.hash && scrollToTarget(0, 0, true)}>
+        <Page key={location.pathname} inner={!home}>
           <Routes location={location}>
             <Route path="/" element={<Home />} />
+            <Route path="/about" element={<AboutPage />} />
             <Route path="/spaces/:slug" element={<SpacePage />} />
             <Route path="/rooms/:id" element={<RoomPage />} />
             <Route path="/works" element={<WorksPage />} />

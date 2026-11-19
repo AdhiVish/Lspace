@@ -5,8 +5,9 @@ import { scrollToTarget } from "@/lib/scroll";
 
 /**
  * Lenis smooth scrolling for the whole site, plus route scroll handling:
- * a new page starts at the top, and /#section links scroll to that section
- * once the home page has rendered.
+ * /#section links scroll to that section once the home page has rendered.
+ * (Jumping to the top of a new page happens in App once the old page has
+ * finished its exit animation, so the jump is never visible.)
  */
 export function ScrollManager() {
   const { pathname, hash } = useLocation();
@@ -22,10 +23,7 @@ export function ScrollManager() {
   }, []);
 
   useLayoutEffect(() => {
-    if (!hash) {
-      scrollToTarget(0, 0, true);
-      return;
-    }
+    if (!hash) return;
     // the page may still be transitioning in: wait (up to ~2s) for the section to exist, then jump to it
     const id = hash.slice(1);
     let raf = 0;

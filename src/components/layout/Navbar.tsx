@@ -1,15 +1,32 @@
 import { useState } from "react";
 import { AnimatePresence, motion, useMotionValueEvent, useScroll } from "motion/react";
+import { Link } from "react-router-dom";
 import { HashLink } from "@/components/routing/HashLink";
 import { useLights } from "@/lib/lights";
 
 const LINKS = [
   ["testimonials", "Testimonials"],
-  ["about", "About us"],
+  ["/about", "About us"],
   ["services", "Services"],
   ["gallery", "Our work"],
   ["enquire", "Contact us"],
 ] as const;
+
+/** A nav entry: "/page" routes are real links, anything else scrolls to that home section. */
+function NavItem({ id, className, onClick, children }: { id: string; className: string; onClick?: () => void; children: React.ReactNode }) {
+  if (id.startsWith("/")) {
+    return (
+      <Link to={id} onClick={onClick} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <HashLink to={`#${id}`} onClick={onClick} className={className}>
+      {children}
+    </HashLink>
+  );
+}
 
 export function LightsButton({ className = "" }: { className?: string }) {
   const { on, toggle } = useLights();
@@ -54,10 +71,10 @@ export function Navbar() {
         </HashLink>
         <div className="hidden gap-[30px] text-[15px] text-mut lg:flex">
           {LINKS.map(([id, label]) => (
-            <HashLink key={id} to={`#${id}`} className="group relative transition-colors hover:text-fg">
+            <NavItem key={id} id={id} className="group relative transition-colors hover:text-fg">
               {label}
               <span className="absolute -bottom-1 left-0 h-px w-full origin-right scale-x-0 bg-pink transition-transform duration-300 group-hover:origin-left group-hover:scale-x-100" />
-            </HashLink>
+            </NavItem>
           ))}
         </div>
         <div className="flex items-center gap-[10px]">
@@ -96,14 +113,14 @@ export function Navbar() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.25 + i * 0.06, duration: 0.6, ease: [0.2, 0.7, 0.2, 1] }}
               >
-                <HashLink
-                  to={`#${id}`}
+                <NavItem
+                  id={id}
                   onClick={() => setOpen(false)}
                   className="flex items-baseline gap-4 border-b border-line py-4 font-h text-[clamp(34px,9vw,56px)] leading-none"
                 >
                   <small className="font-b text-[13px] text-pink">0{i + 1}</small>
                   {label}
-                </HashLink>
+                </NavItem>
               </motion.div>
             ))}
             <motion.div
