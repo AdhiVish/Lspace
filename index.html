@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Preview build: keep out of search results. REMOVE when going live. -->
+    <meta name="robots" content="noindex, nofollow" />
+    <link rel="icon" type="image/png" href="/media/favicon.png" />
+    <title>LSPACE Interiors</title>
+    <meta
+      name="description"
+      content="LSPACE Interiors: full home interiors, modular kitchens, wardrobes and commercial spaces. 40,000+ sqft delivered across 10+ cities."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;1,9..144,400&family=Manrope:wght@400;500;600&display=swap"
+    />
+    <script>
+      // the site always opens in dark mode (lights off); skip the loader on repeat visits
+      try {
+        if (sessionStorage.getItem("lsp-intro") === "1" || location.hash.length > 1 || location.pathname.replace(/\/$/, "") !== "")
+          document.documentElement.classList.add("no-intro");
+      } catch (e) {}
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
