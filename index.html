@@ -20,7 +20,7 @@
     <script>
       // the site always opens in dark mode (lights off); skip the loader on repeat visits
       try {
-        if (sessionStorage.getItem("lsp-intro") === "1" || location.hash.length > 1 || location.pathname.replace(/\/$/, "") !== "")
+        if (sessionStorage.getItem("lsp-intro") === "1" || location.hash.length > 1 || location.pathname.replace(/\/$/, "") !== "%BASE_URL%".replace(/\/$/, ""))
           document.documentElement.classList.add("no-intro");
       } catch (e) {}
     </script>
