@@ -88,10 +88,15 @@ export function Hero() {
       const el = contentRef.current;
       if (!el) return;
       const top = el.offsetTop; // unaffected by the scroll transforms
-      const room = top - 15; // the lamp (wire + 190px of shade and cord) must end above this
-      setWire(Math.round(Math.min(180, Math.max(20, room - 190))));
-      // very short screens: the lamp itself shrinks a little too
-      setLampScale(Math.max(0.6, Math.min(1, room / 210)));
+      // the shade must start below the floating navbar, so the whole lamp is always visible
+      const navEl = document.querySelector<HTMLElement>("[data-topnav]");
+      const nav = navEl ? navEl.offsetTop + navEl.offsetHeight : 72; // ignores the hide-on-scroll slide
+      const minWire = Math.round(nav + 10);
+      const room = top - 12; // the lamp (wire + 190px of shade and cord) must end above this
+      const w = Math.round(Math.min(180, Math.max(minWire, room - 190)));
+      setWire(w);
+      // only if the text still doesn't leave room, the lamp shrinks a little (from the shade down)
+      setLampScale(Math.max(0.7, Math.min(1, (room - w) / 190)));
     };
     fit();
     const ro = new ResizeObserver(fit);
@@ -147,7 +152,10 @@ export function Hero() {
         </motion.div>
 
         <motion.div className="absolute inset-0" style={{ y: lampY }}>
-          <div className="absolute inset-0 origin-top" style={{ transform: lampScale < 1 ? `scale(${lampScale})` : undefined }}>
+          <div
+            className="absolute inset-0"
+            style={{ transform: lampScale < 1 ? `scale(${lampScale})` : undefined, transformOrigin: `50% ${wire}px` }}
+          >
             <Lamp wire={wire} />
             <LightCone top={wire + 70} />
           </div>
@@ -160,14 +168,14 @@ export function Hero() {
         >
           <div ref={contentRef} className="flex flex-col items-center">
           <motion.p
-            className="mb-[22px] text-sm text-mut"
+            className="mb-[clamp(10px,2vh,22px)] text-sm text-mut"
             initial={{ opacity: 0 }}
             animate={go ? { opacity: 1 } : undefined}
             transition={{ delay: 0.9, duration: 0.8 }}
           >
             {on ? "Nicely lit. Pull again to switch off" : "Pull the cord to switch on the lights"}
           </motion.p>
-          <h1 className="mb-[26px] max-w-[960px] text-[clamp(40px,min(8vw,12.5vh),112px)]">
+          <h1 className="mb-[clamp(14px,2.6vh,26px)] max-w-[960px] text-[clamp(34px,min(8vw,10vh),112px)]">
             {HEAD.map((w, i) => (
               <span key={i} className="inline-block overflow-hidden pb-[0.1em] align-bottom">
                 <motion.span
@@ -183,7 +191,7 @@ export function Hero() {
             ))}
           </h1>
           <motion.p
-            className="max-w-[500px] text-lg text-mut"
+            className="max-w-[500px] text-base text-mut md:text-lg"
             initial={{ opacity: 0, y: 20 }}
             animate={go ? { opacity: 1, y: 0 } : undefined}
             transition={{ delay: 0.8, duration: 0.9 }}
@@ -191,7 +199,7 @@ export function Hero() {
             LSPACE Interiors designs and builds homes, kitchens and commercial spaces, from first sketch to handover.
           </motion.p>
           <motion.div
-            className="pointer-events-auto mt-[34px] flex flex-wrap items-center justify-center gap-[30px]"
+            className="pointer-events-auto mt-[clamp(18px,3.6vh,34px)] flex flex-wrap items-center justify-center gap-[30px]"
             initial={{ opacity: 0, y: 20 }}
             animate={go ? { opacity: 1, y: 0 } : undefined}
             transition={{ delay: 1, duration: 0.9 }}
@@ -208,7 +216,7 @@ export function Hero() {
           {/* scroll cue, in the flow under the buttons so it can never cover them */}
           <motion.div
             aria-hidden
-            className="mt-[clamp(18px,4vh,40px)] flex flex-col items-center gap-2 text-[11px] tracking-[.3em] text-mut uppercase"
+            className="mt-[clamp(14px,3vh,36px)] flex flex-col items-center gap-2 text-[11px] tracking-[.3em] text-mut uppercase"
             style={{ opacity: cue }}
           >
             Scroll

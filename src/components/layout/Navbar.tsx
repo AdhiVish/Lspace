@@ -61,6 +61,7 @@ export function Navbar() {
   return (
     <>
       <motion.nav
+        data-topnav
         animate={{ y: hidden && !open ? -110 : 0 }}
         transition={{ duration: 0.45, ease: [0.2, 0.7, 0.2, 1] }}
         className="fixed top-4 left-1/2 z-50 flex w-[min(1100px,calc(100%-28px))] items-center justify-between rounded-full border border-line py-[9px] pr-[10px] pl-6 backdrop-blur-[14px] transition-[background-color,border-color] duration-900"
