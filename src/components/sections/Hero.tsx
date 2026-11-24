@@ -9,11 +9,13 @@ import { useJsScroll } from "@/lib/scroll";
 
 const HEAD = ["Switch", "on", "to", "a", "better", "space", "with", "us"];
 
-// The logo artwork (public/media/nlogo-*.png) is 640 x 162. The zoom is anchored on the
-// middle of the pink "L" stem, the thickest solid stroke, so at full zoom the room fills the screen.
-const LOGO_AR = 162 / 640;
-const ANCHOR = { x: 161 / 640, y: 115 / 162 };
-const STEM_W = 12 / 640; // stem width as a share of the logo width
+// The house symbol from the logo, cut out at high resolution (public/media/house-*.png, 834 x 1068).
+// house-mask.png is the filled house; the zoom is anchored in the middle of the box so at full
+// zoom the room fills the screen.
+const HOUSE_AR = 1068 / 834;
+const ANCHOR = { x: 400 / 834, y: 710 / 1068 };
+const REACH_X = 280 / 834; // box half-width, as a share of the house width
+const REACH_Y = 210 / 834; // anchor to box top, as a share of the house width
 
 /** Zoom progress 0..1 for a scroll progress. */
 function zoomK(v: number) {
@@ -21,20 +23,19 @@ function zoomK(v: number) {
   return 1 - Math.pow(1 - k, 3);
 }
 
-/** Where the logo-shaped window sits for a scroll progress (px). */
+/** Where the house-shaped window sits for a scroll progress (px). */
 function logoBox(v: number) {
   const e = zoomK(v);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const phone = vw < 768;
-  const W = Math.min(vw * (phone ? 0.86 : 0.7), 1000); // final logo width
-  const H = W * LOGO_AR;
-  const S0 = (1.2 * vw) / (STEM_W * W); // start: the stem alone is wider than the screen
+  const H = Math.min(vh * (phone ? 0.42 : 0.52), phone ? 380 : 480); // final house height
+  const W = H / HOUSE_AR;
+  const S0 = Math.max((0.56 * vw) / (REACH_X * W), (0.56 * vh) / (REACH_Y * W)); // start: the box covers the screen
   const s = Math.pow(S0, 1 - e);
-  // the anchor travels from the screen centre to its place in the final, centred logo
   const cx = vw / 2;
   const cy = vh / 2;
-  const fy = vh * (phone ? 0.46 : 0.44);
+  const fy = vh * (phone ? 0.44 : 0.43);
   const ax = cx + (cx - W / 2 + ANCHOR.x * W - cx) * e;
   const ay = cy + (fy - H / 2 + ANCHOR.y * H - cy) * e;
   return { w: W * s, x: ax - ANCHOR.x * W * s, y: ay - ANCHOR.y * H * s, W, H, fy };
@@ -63,7 +64,7 @@ function Stat({ p, i, className = "" }: { p: MotionValue<number>; i: number; cla
 /**
  * Pinned opening scene.
  * 1. The room photo fills the screen; the lamp hangs over the headline (click it to switch the lights).
- * 2. Scrolling zooms the room out until it sits inside the LSPACE logo, then the real logo settles in.
+ * 2. Scrolling zooms the room out until it sits inside the LSPACE house symbol, then the symbol settles around it.
  * 3. The three key numbers count up under the logo.
  */
 export function Hero() {
@@ -72,13 +73,13 @@ export function Hero() {
   const go = useIntroGo();
   const { scrollYProgress: p } = useJsScroll({ target: ref, offset: ["start start", "end end"] });
 
-  // the room is seen through the logo: a mask that starts enormous and shrinks to the logo size
+  // the room is seen through the house: a mask that starts enormous and shrinks to the symbol size
   const maskSize = useTransform(p, (v) => `${logoBox(v).w}px auto`);
   const maskPos = useTransform(p, (v) => {
     const b = logoBox(v);
     return `${b.x}px ${b.y}px`;
   });
-  // once the room has settled in the letters, the real (coloured) logo fades over it
+  // once the room has settled in the house, the real (coloured) symbol fades in around it
   const logoOpacity = useTransform(p, [0.56, 0.7], [0, 1]);
   const [box, setBox] = useState(() => logoBox(1));
   useMotionValueEvent(p, "change", () => {
@@ -104,8 +105,8 @@ export function Hero() {
         <motion.div
           className="absolute inset-0"
           style={{
-            WebkitMaskImage: `url(${media("nlogo-ondark.png")})`,
-            maskImage: `url(${media("nlogo-ondark.png")})`,
+            WebkitMaskImage: `url(${media("house-mask.png")})`,
+            maskImage: `url(${media("house-mask.png")})`,
             WebkitMaskRepeat: "no-repeat",
             maskRepeat: "no-repeat",
             WebkitMaskSize: maskSize,
@@ -129,20 +130,18 @@ export function Hero() {
           />
         </motion.div>
 
-        {/* the real logo + tagline, faded in over the room once it has landed */}
+        {/* the house symbol itself, faded in around the room once it has landed */}
         <motion.div
           aria-hidden
-          className="pointer-events-none absolute left-1/2 z-[4] -translate-x-1/2"
-          style={{ top: box.fy - box.H / 2, width: box.W, opacity: logoOpacity }}
-        >
-          <div
-            className="w-full bg-contain bg-center bg-no-repeat"
-            style={{ height: box.H, backgroundImage: `url(${media(on ? "nlogo-onlight.png" : "nlogo-ondark.png")})` }}
-          />
-          <p className="mt-[clamp(14px,2.2vw,30px)] text-center text-[clamp(10px,1.15vw,15px)] tracking-[.55em] text-mut uppercase">
-            Interior design &amp; construction
-          </p>
-        </motion.div>
+          className="pointer-events-none absolute left-1/2 z-[4] -translate-x-1/2 bg-contain bg-center bg-no-repeat"
+          style={{
+            top: box.fy - box.H / 2,
+            width: box.W,
+            height: box.H,
+            opacity: logoOpacity,
+            backgroundImage: `url(${media(on ? "house-onlight.png" : "house-ondark.png")})`,
+          }}
+        />
 
         <motion.div className="absolute inset-0" style={{ y: lampY }}>
           <Lamp />
@@ -151,7 +150,7 @@ export function Hero() {
 
         {/* headline */}
         <motion.div
-          className="pointer-events-none relative z-[5] flex h-full flex-col items-center justify-center px-6 pt-[30vh] text-center"
+          className="pointer-events-none relative z-[5] flex h-full flex-col items-center justify-center px-6 pt-[30vh] text-center md:pt-[24vh]"
           style={{ y: headY, opacity: headOpacity, filter: headBlur }}
         >
           <motion.p
@@ -200,7 +199,7 @@ export function Hero() {
           </motion.div>
         </motion.div>
 
-        {/* stats under the logo */}
+        {/* stats under the house */}
         <motion.div className="pointer-events-none absolute inset-0 z-[6]" style={{ opacity: statsOpacity, y: statsY }}>
           <motion.svg
             aria-hidden
@@ -210,7 +209,7 @@ export function Hero() {
           >
             <circle cx="50" cy="50" r="49" fill="none" stroke="currentColor" strokeWidth=".1" strokeDasharray=".5 1.5" />
           </motion.svg>
-          {/* one row under the logo */}
+          {/* one row under the house */}
           <div className="absolute inset-x-4 bottom-[22vh] mx-auto grid max-w-[900px] md:bottom-[6vh] grid-cols-3 gap-2 text-center">
             {STATS.map((s, i) => (
               <Stat key={s.label} p={p} i={i} />
@@ -221,7 +220,7 @@ export function Hero() {
         {/* scroll cue */}
         <motion.div
           aria-hidden
-          className="absolute bottom-6 left-1/2 z-[6] flex -translate-x-1/2 flex-col items-center gap-2 text-[11px] tracking-[.3em] text-mut uppercase"
+          className="absolute bottom-5 left-1/2 z-[6] hidden -translate-x-1/2 md:flex flex-col items-center gap-2 text-[11px] tracking-[.3em] text-mut uppercase"
           style={{ opacity: cue }}
         >
           Scroll
