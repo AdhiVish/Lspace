@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
 import { Lamp, LightCone } from "@/components/ui/Lamp";
 import { HashLink } from "@/components/routing/HashLink";
@@ -9,13 +9,11 @@ import { useJsScroll } from "@/lib/scroll";
 
 const HEAD = ["Switch", "on", "to", "a", "better", "space", "with", "us"];
 
-// The house symbol from the logo, cut out at high resolution (public/media/house-*.png, 834 x 1068).
-// house-mask.png is the filled house; the zoom is anchored in the middle of the box so at full
-// zoom the room fills the screen.
-const HOUSE_AR = 1068 / 834;
-const ANCHOR = { x: 400 / 834, y: 710 / 1068 };
-const REACH_X = 280 / 834; // box half-width, as a share of the house width
-const REACH_Y = 210 / 834; // anchor to box top, as a share of the house width
+// The logo artwork (public/media/nlogo-*.png) is 640 x 162. The zoom is anchored on the
+// middle of the pink "L" stem, the thickest solid stroke, so at full zoom the room fills the screen.
+const LOGO_AR = 162 / 640;
+const ANCHOR = { x: 161 / 640, y: 115 / 162 };
+const STEM_W = 12 / 640; // stem width as a share of the logo width
 
 /** Zoom progress 0..1 for a scroll progress. */
 function zoomK(v: number) {
@@ -23,19 +21,20 @@ function zoomK(v: number) {
   return 1 - Math.pow(1 - k, 3);
 }
 
-/** Where the house-shaped window sits for a scroll progress (px). */
+/** Where the logo-shaped window sits for a scroll progress (px). */
 function logoBox(v: number) {
   const e = zoomK(v);
   const vw = window.innerWidth;
   const vh = window.innerHeight;
   const phone = vw < 768;
-  const H = Math.min(vh * (phone ? 0.42 : 0.52), phone ? 380 : 480); // final house height
-  const W = H / HOUSE_AR;
-  const S0 = Math.max((0.56 * vw) / (REACH_X * W), (0.56 * vh) / (REACH_Y * W)); // start: the box covers the screen
+  const W = Math.min(vw * (phone ? 0.86 : 0.7), 1000); // final logo width
+  const H = W * LOGO_AR;
+  const S0 = (1.2 * vw) / (STEM_W * W); // start: the stem alone is wider than the screen
   const s = Math.pow(S0, 1 - e);
+  // the anchor travels from the screen centre to its place in the final, centred logo
   const cx = vw / 2;
   const cy = vh / 2;
-  const fy = vh * (phone ? 0.44 : 0.43);
+  const fy = vh * (phone ? 0.46 : 0.44);
   const ax = cx + (cx - W / 2 + ANCHOR.x * W - cx) * e;
   const ay = cy + (fy - H / 2 + ANCHOR.y * H - cy) * e;
   return { w: W * s, x: ax - ANCHOR.x * W * s, y: ay - ANCHOR.y * H * s, W, H, fy };
@@ -64,7 +63,7 @@ function Stat({ p, i, className = "" }: { p: MotionValue<number>; i: number; cla
 /**
  * Pinned opening scene.
  * 1. The room photo fills the screen; the lamp hangs over the headline (click it to switch the lights).
- * 2. Scrolling zooms the room out until it sits inside the LSPACE house symbol, then the symbol settles around it.
+ * 2. Scrolling zooms the room out until it sits inside the LSPACE lettering (the room stays visible in the letters).
  * 3. The three key numbers count up under the logo.
  */
 export function Hero() {
@@ -73,19 +72,36 @@ export function Hero() {
   const go = useIntroGo();
   const { scrollYProgress: p } = useJsScroll({ target: ref, offset: ["start start", "end end"] });
 
-  // the room is seen through the house: a mask that starts enormous and shrinks to the symbol size
+  // the room is seen through the logo: a mask that starts enormous and shrinks to the logo size
   const maskSize = useTransform(p, (v) => `${logoBox(v).w}px auto`);
   const maskPos = useTransform(p, (v) => {
     const b = logoBox(v);
     return `${b.x}px ${b.y}px`;
   });
-  // once the room has settled in the house, the real (coloured) symbol fades in around it
-  const logoOpacity = useTransform(p, [0.56, 0.7], [0, 1]);
-  const [box, setBox] = useState(() => logoBox(1));
-  useMotionValueEvent(p, "change", () => {
-    const b = logoBox(1);
-    if (b.W !== box.W || b.fy !== box.fy) setBox(b);
-  });
+  // The lamp hangs from the top; its wire shortens on shorter screens so the shade and
+  // pull-cord never sit on the headline, which is laid out from the bottom of the screen.
+  const contentRef = useRef<HTMLDivElement>(null);
+  const [wire, setWire] = useState(180);
+  const [lampScale, setLampScale] = useState(1);
+  useEffect(() => {
+    const fit = () => {
+      const el = contentRef.current;
+      if (!el) return;
+      const top = el.offsetTop; // unaffected by the scroll transforms
+      const room = top - 15; // the lamp (wire + 190px of shade and cord) must end above this
+      setWire(Math.round(Math.min(180, Math.max(20, room - 190))));
+      // very short screens: the lamp itself shrinks a little too
+      setLampScale(Math.max(0.6, Math.min(1, room / 210)));
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    if (contentRef.current) ro.observe(contentRef.current);
+    window.addEventListener("resize", fit);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener("resize", fit);
+    };
+  }, []);
 
   const photoScale = useTransform(p, [0, 0.6], [1.18, 1]);
   const veil = useTransform(p, [0, 0.45], [1, 0.2]);
@@ -105,8 +121,8 @@ export function Hero() {
         <motion.div
           className="absolute inset-0"
           style={{
-            WebkitMaskImage: `url(${media("house-mask.png")})`,
-            maskImage: `url(${media("house-mask.png")})`,
+            WebkitMaskImage: `url(${media("nlogo-ondark.png")})`,
+            maskImage: `url(${media("nlogo-ondark.png")})`,
             WebkitMaskRepeat: "no-repeat",
             maskRepeat: "no-repeat",
             WebkitMaskSize: maskSize,
@@ -130,29 +146,19 @@ export function Hero() {
           />
         </motion.div>
 
-        {/* the house symbol itself, faded in around the room once it has landed */}
-        <motion.div
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 z-[4] -translate-x-1/2 bg-contain bg-center bg-no-repeat"
-          style={{
-            top: box.fy - box.H / 2,
-            width: box.W,
-            height: box.H,
-            opacity: logoOpacity,
-            backgroundImage: `url(${media(on ? "house-onlight.png" : "house-ondark.png")})`,
-          }}
-        />
-
         <motion.div className="absolute inset-0" style={{ y: lampY }}>
-          <Lamp />
-          <LightCone />
+          <div className="absolute inset-0 origin-top" style={{ transform: lampScale < 1 ? `scale(${lampScale})` : undefined }}>
+            <Lamp wire={wire} />
+            <LightCone top={wire + 70} />
+          </div>
         </motion.div>
 
         {/* headline */}
         <motion.div
-          className="pointer-events-none relative z-[5] flex h-full flex-col items-center justify-center px-6 pt-[30vh] text-center md:pt-[24vh]"
+          className="pointer-events-none relative z-[5] flex h-full flex-col items-center justify-end px-6 pb-4 text-center"
           style={{ y: headY, opacity: headOpacity, filter: headBlur }}
         >
+          <div ref={contentRef} className="flex flex-col items-center">
           <motion.p
             className="mb-[22px] text-sm text-mut"
             initial={{ opacity: 0 }}
@@ -161,7 +167,7 @@ export function Hero() {
           >
             {on ? "Nicely lit. Pull again to switch off" : "Pull the cord to switch on the lights"}
           </motion.p>
-          <h1 className="mb-[26px] max-w-[960px] text-[clamp(46px,8vw,112px)]">
+          <h1 className="mb-[26px] max-w-[960px] text-[clamp(40px,min(8vw,12.5vh),112px)]">
             {HEAD.map((w, i) => (
               <span key={i} className="inline-block overflow-hidden pb-[0.1em] align-bottom">
                 <motion.span
@@ -197,9 +203,26 @@ export function Hero() {
               View our work
             </HashLink>
           </motion.div>
+          </div>
+
+          {/* scroll cue, in the flow under the buttons so it can never cover them */}
+          <motion.div
+            aria-hidden
+            className="mt-[clamp(18px,4vh,40px)] flex flex-col items-center gap-2 text-[11px] tracking-[.3em] text-mut uppercase"
+            style={{ opacity: cue }}
+          >
+            Scroll
+            <span className="relative h-8 w-px overflow-hidden bg-line md:h-10">
+              <motion.span
+                className="absolute inset-x-0 top-0 h-1/2 bg-pink"
+                animate={{ y: ["-100%", "200%"] }}
+                transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+              />
+            </span>
+          </motion.div>
         </motion.div>
 
-        {/* stats under the house */}
+        {/* stats under the logo */}
         <motion.div className="pointer-events-none absolute inset-0 z-[6]" style={{ opacity: statsOpacity, y: statsY }}>
           <motion.svg
             aria-hidden
@@ -209,7 +232,7 @@ export function Hero() {
           >
             <circle cx="50" cy="50" r="49" fill="none" stroke="currentColor" strokeWidth=".1" strokeDasharray=".5 1.5" />
           </motion.svg>
-          {/* one row under the house */}
+          {/* one row under the logo */}
           <div className="absolute inset-x-4 bottom-[22vh] mx-auto grid max-w-[900px] md:bottom-[6vh] grid-cols-3 gap-2 text-center">
             {STATS.map((s, i) => (
               <Stat key={s.label} p={p} i={i} />
@@ -217,21 +240,6 @@ export function Hero() {
           </div>
         </motion.div>
 
-        {/* scroll cue */}
-        <motion.div
-          aria-hidden
-          className="absolute bottom-5 left-1/2 z-[6] hidden -translate-x-1/2 md:flex flex-col items-center gap-2 text-[11px] tracking-[.3em] text-mut uppercase"
-          style={{ opacity: cue }}
-        >
-          Scroll
-          <span className="relative h-10 w-px overflow-hidden bg-line">
-            <motion.span
-              className="absolute inset-x-0 top-0 h-1/2 bg-pink"
-              animate={{ y: ["-100%", "200%"] }}
-              transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            />
-          </span>
-        </motion.div>
       </div>
     </header>
   );
