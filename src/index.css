@@ -34,7 +34,8 @@ html.on {
 }
 
 @layer base {
-  html { scrollbar-gutter: stable; }
+  html { scrollbar-width: none; }
+  html::-webkit-scrollbar, body::-webkit-scrollbar { display: none; }
   html.lenis-smooth { scroll-behavior: auto !important; }
   body {
     background: var(--bg);
